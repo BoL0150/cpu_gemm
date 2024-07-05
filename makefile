@@ -1,10 +1,10 @@
-OLD  := MMult_4x4_4
-NEW  := MMult_avx2
+OLD  := MMult_avx512_24x8_reuse_B
+NEW  := MMult_avx512_24x8_accumulate_fuse
 # sample makefile
 #
 CC         := gcc
 LINKER     := $(CC)
-CFLAGS     := -O2 -Wall -msse3 -mavx2
+CFLAGS     := -O2 -Wall -msse3 -mavx2 -mavx512f
 LDFLAGS    := -lm
 
 UTIL       := copy_matrix.o \

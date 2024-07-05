@@ -19,4 +19,4 @@ nprocessors = 1;
 % the peak clock rate...
 %
 
-GHz_of_processor = 8.6;
+GHz_of_processor = 16.6;

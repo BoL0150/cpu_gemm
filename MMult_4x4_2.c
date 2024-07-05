@@ -7,7 +7,7 @@
 /* Routine for computing C = A * B + C */
 
 void AddDot( int, double *, int, double *, double * );
-void AddDot4x4(int k, double* A, int lda, double* B, int ldb, double* C, int ldc);
+void AddDot24x8(int k, double* A, int lda, double* B, int ldb, double* C, int ldc);
 
 void MY_MMult( int m, int n, int k, double *a, int lda, 
                                     double *b, int ldb,
@@ -19,7 +19,7 @@ void MY_MMult( int m, int n, int k, double *a, int lda,
     for ( i=0; i<m; i+= 4 ){        /* Loop over the rows of C */
       // 对最外层循环进行了步长为4的循环展开，也就是在每个内层循环中，
       // A的每个行向量要与四个B的列向量进行内积
-      AddDot4x4(k, &A(i, 0), lda, &B(0, j), ldb, &C(i, j), ldc);
+      AddDot24x8(k, &A(i, 0), lda, &B(0, j), ldb, &C(i, j), ldc);
     }
   }
 }
@@ -27,7 +27,7 @@ void MY_MMult( int m, int n, int k, double *a, int lda,
 // 再将四个AddDot1x4内联到AddDot4x4中。相当于是四个长为K的行向量乘以四个长为K的列向量，对k进行遍历，
 // 那么在一个循环内部就是长为四的列向量外积长为四的行向量，得到C中4 * 4的一块
 // 然后每个循环都对这个4 * 4的块进行累加
-void AddDot4x4(int k, double* a, int lda, double* b, int ldb, double* c, int ldc) {
+void AddDot24x8(int k, double* a, int lda, double* b, int ldb, double* c, int ldc) {
   // register double c_00 = 0.0, c_01 = 0.0, c_02 = 0.0, c_03 = 0.0, a_0p;
   // register double c_10 = 0.0, c_11 = 0.0, c_12 = 0.0, c_13 = 0.0, a_1p;
   // register double c_20 = 0.0, c_21 = 0.0, c_22 = 0.0, c_23 = 0.0, a_2p;

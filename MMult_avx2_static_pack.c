@@ -3,12 +3,15 @@
 #define A(i,j) a[ (j)*lda + (i) ]
 #define B(i,j) b[ (j)*ldb + (i) ]
 #define C(i,j) c[ (j)*ldc + (i) ]
+#define kc 128
+#define mc 256
+#define n_max 2000
 
 /* Routine for computing C = A * B + C */
 
 void AddDot( int, double *, int, double *, double * );
 void AddDot24x8(int k, double* A, int lda, double* B, int ldb, double* C, int ldc);
-void InnerKernel(int m, int n, int k, double *a, int lda, double *b, int ldb, double *c, int ldc);
+void InnerKernel(int m, int n, int k, double *a, int lda, double *b, int ldb, double *c, int ldc, int need_pack_b);
 void PackMatrixA(int k, double *a, int lda, double *dest);
 void PackMatrixB(int k, double *b, int ldb, double *dest);
 
@@ -16,20 +19,22 @@ void MY_MMult( int m, int n, int k, double *a, int lda,
                                     double *b, int ldb,
                                     double *c, int ldc )
 {
-  int kc = 128, mc = 256;
   for (int p = 0; p < k; p += kc) {
     int pb = (k - p < kc) ? k - p : kc;
     for (int i = 0; i < m; i += mc) {
       int ib = (m - i < mc) ? m - i : mc;
-      InnerKernel(ib, n, pb, &A(i, p), lda, &B(p, 0), ldb, &C(i, 0), ldc);
+      // 由于A的多个分块都与B的同一个分块相乘，所以B的每个分块只需要在第一次运算时被pack
+      InnerKernel(ib, n, pb, &A(i, p), lda, &B(p, 0), ldb, &C(i, 0), ldc, (i == 0));
     }
   }
 }
-void InnerKernel(int m, int n, int k, double *a, int lda, double *b, int ldb, double *c, int ldc) {
+void InnerKernel(int m, int n, int k, double *a, int lda, double *b, int ldb, double *c, int ldc, int need_pack_b) {
   double packedA[m * k];
-  double packedB[k * n];
+  static double packedB[kc * n_max];
   for (int j=0; j<n; j+= 4 ){        /* Loop over the columns of C */
-    PackMatrixB(k, &B(0, j), ldb, &packedB[j * k]);
+    if (need_pack_b) {
+      PackMatrixB(k, &B(0, j), ldb, &packedB[j * k]);
+    }
     for (int i=0; i<m; i+= 4 ){        /* Loop over the rows of C */
       if (j == 0) {
         PackMatrixA(k, &A(i, 0), lda, &packedA[i * k]);
